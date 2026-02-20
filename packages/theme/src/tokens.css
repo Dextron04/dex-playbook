@@ -1,0 +1,25 @@
+@theme {
+  /* Dark backgrounds */
+  --color-dark:           #0B0018;
+  --color-dark-deep:      #080012;
+  --color-dark-card:      #120020;
+  --color-dark-elevated:  #1A0533;
+
+  /* Light/neutral */
+  --color-light-purple:   #F8F7FF;
+  --color-gray-card:      #F4F4F5;
+  --color-near-black:     #18181B;
+  --color-muted:          #6B7280;
+  --color-secondary:      #71717A;
+  --color-subtle:         #52525B;
+
+  /* Accent palette */
+  --color-purple:         #8B5CF6;
+  --color-purple-light:   #A78BFA;
+  --color-teal:           #14B8A6;
+  --color-pink:           #F472B6;
+
+  /* Typography */
+  --font-display: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-body:    var(--font-inter), 'Inter', sans-serif;
+}
