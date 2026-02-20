@@ -65,7 +65,7 @@ export default function SecondaryFeatures() {
           {cards.map((card) => (
             <div
               key={card.title}
-              className="flex flex-col gap-4 bg-dark-card border border-white/5 rounded-2xl p-7 hover:border-white/10 transition-colors duration-200"
+              className="flex flex-col gap-4 bg-dark-card border border-white/5 rounded-2xl p-7 hover:border-white/10 hover:bg-dark-elevated transition-all duration-200"
             >
               <div className="flex items-center gap-3">
                 <span

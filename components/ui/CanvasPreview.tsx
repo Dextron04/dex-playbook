@@ -182,14 +182,19 @@ export default function CanvasPreview() {
   return (
     <div
       ref={containerRef}
-      className="w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
+      className="relative w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-purple/10"
       style={{ background: "#0C0020" }}
     >
       <canvas
         ref={canvasRef}
         width={960}
         height={420}
-        className="w-full h-auto"
+        className="w-full h-auto block"
+      />
+      {/* Fade bottom edge into page background */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
+        style={{ background: "linear-gradient(to bottom, transparent, #0B0018)" }}
       />
     </div>
   );

@@ -2,8 +2,15 @@ import Button from "@/components/ui/Button";
 
 export default function FinalCTA() {
   return (
-    <section className="bg-dark">
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 lg:px-20 py-24 flex flex-col gap-8">
+    <section className="bg-dark relative overflow-hidden">
+      {/* Ambient glow */}
+      <div
+        className="absolute -top-40 left-1/3 w-[700px] h-[500px] pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at center, rgba(139,92,246,0.12) 0%, transparent 70%)",
+        }}
+      />
+      <div className="relative max-w-[1440px] mx-auto px-6 md:px-12 lg:px-20 py-28 flex flex-col gap-8">
         <h2 className="font-display font-bold text-[clamp(40px,5vw,72px)] text-white leading-[1.05]">
           Ready to think
           <br />

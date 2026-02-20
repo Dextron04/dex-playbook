@@ -79,7 +79,9 @@ export default function Pricing() {
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`flex flex-col gap-6 rounded-3xl p-10 ${tier.cardClass}`}
+              className={`flex flex-col gap-6 rounded-3xl p-10 ${tier.cardClass} ${
+                tier.highlighted ? "shadow-2xl shadow-purple/25 ring-1 ring-purple/30" : ""
+              }`}
             >
               {/* Badge */}
               {tier.badge && (

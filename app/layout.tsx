@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Playspace — The Infinite Collaborative Canvas",
+  title: "Dex's Playbook — The Infinite Collaborative Canvas",
   description:
     "The infinite canvas where teams brainstorm, sketch, and play in real time. Live cursors, sticky notes, mini-games, and more.",
 };

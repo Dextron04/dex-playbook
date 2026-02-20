@@ -44,7 +44,7 @@ export default function HowItWorks() {
           {steps.map((step) => (
             <div
               key={step.number}
-              className="flex flex-col gap-4 bg-gray-card border border-gray-200 rounded-3xl p-8"
+              className="flex flex-col gap-4 bg-gray-card border border-gray-100 rounded-3xl p-8 shadow-sm"
             >
               {/* Number circle */}
               <div

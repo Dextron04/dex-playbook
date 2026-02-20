@@ -12,9 +12,14 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row gap-12 md:gap-0 md:justify-between">
           {/* Brand */}
           <div className="max-w-xs flex flex-col gap-3">
-            <span className="font-display font-bold text-xl text-white">
-              Playspace
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-purple flex items-center justify-center font-display font-bold text-[13px] text-white shrink-0">
+                D
+              </span>
+              <span className="font-display font-bold text-xl text-white">
+                Dex&apos;s Playbook
+              </span>
+            </div>
             <p className="text-sm font-body text-subtle leading-relaxed">
               The infinite canvas where ideas come alive. Built for creative
               teams, curious minds, and playful collaborators.
@@ -47,10 +52,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <p className="text-[13px] font-body text-[#374151]">
-            © 2025 Playspace. All rights reserved.
+          <p className="text-[13px] font-body text-subtle">
+            © 2025 Dex&apos;s Playbook. All rights reserved.
           </p>
-          <p className="text-[13px] font-body text-[#374151]">
+          <p className="text-[13px] font-body text-subtle">
             Made with ☕ and creativity
           </p>
         </div>
