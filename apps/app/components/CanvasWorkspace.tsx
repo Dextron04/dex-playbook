@@ -15,17 +15,6 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
 
 const COLORS = ["#8B5CF6", "#14B8A6", "#F472B6", "#FB923C", "#34D399", "#A78BFA"];
 
-const INITIAL_STICKIES: StickyNote[] = [
-  { id: "1", x: 140, y: 120, color: "#8B5CF6", text: "Ship v1 🚀\nby Friday" },
-  { id: "2", x: 380, y: 90,  color: "#14B8A6", text: "User interviews\n5 done, 3 left" },
-  { id: "3", x: 640, y: 130, color: "#F472B6", text: "Brainstorm ✨\nkeep it fun" },
-];
-
-const COLLABORATORS = [
-  { name: "Sara", color: "#A78BFA" },
-  { name: "Raj",  color: "#14B8A6" },
-  { name: "Alex", color: "#F472B6" },
-];
 
 interface CanvasWorkspaceProps {
   roomId: string;
@@ -45,7 +34,7 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
 
   const lastEmit = useRef(0);
 
-  const { socket, strokes, stickies, remoteCursors, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
+  const { socket, strokes, stickies, remoteUsers, remoteCursors, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -241,16 +230,34 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
         </div>
         <div className="flex items-center gap-4">
           <div className="flex -space-x-1.5">
-            {COLLABORATORS.map((c) => (
-              <div
-                key={c.name}
-                title={c.name}
-                className="w-7 h-7 rounded-full border-2 border-[#080012] flex items-center justify-center text-xs font-bold"
-                style={{ backgroundColor: c.color }}
-              >
-                {c.name[0]}
-              </div>
-            ))}
+            {(() => {
+              const allUsers = [
+                { id: "local", name: userName, color: userColor },
+                ...remoteUsers,
+              ];
+              const MAX = 5;
+              const visible = allUsers.slice(0, MAX);
+              const overflow = allUsers.length - MAX;
+              return (
+                <>
+                  {visible.map((u) => (
+                    <div
+                      key={u.id}
+                      title={u.name}
+                      className="w-7 h-7 rounded-full border-2 border-[#080012] flex items-center justify-center text-xs font-bold"
+                      style={{ backgroundColor: u.color }}
+                    >
+                      {u.name[0]}
+                    </div>
+                  ))}
+                  {overflow > 0 && (
+                    <div className="w-7 h-7 rounded-full border-2 border-[#080012] flex items-center justify-center text-xs font-bold bg-[#3F3F46] text-white">
+                      +{overflow}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <button className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold rounded-lg transition-colors">
             Share
