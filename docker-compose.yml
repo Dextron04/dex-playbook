@@ -1,0 +1,22 @@
+services:
+  landing:
+    build:
+      context: .
+      dockerfile: apps/landing/Dockerfile
+      target: runner
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: apps/app/Dockerfile
+      target: runner
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped

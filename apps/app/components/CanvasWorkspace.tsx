@@ -292,7 +292,11 @@ export default function CanvasWorkspace() {
           <canvas
             ref={canvasRef}
             className="absolute inset-0 w-full h-full"
-            style={{ cursor: cursorStyle }}
+            style={{
+              cursor: cursorStyle,
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: "center center",
+            }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

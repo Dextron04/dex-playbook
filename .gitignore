@@ -1,6 +1,6 @@
 # ── Dependencies ─────────────────────────────────────────────────────────────
-/node_modules
-/.pnp
+node_modules
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -9,12 +9,12 @@
 !.yarn/versions
 
 # ── Next.js ──────────────────────────────────────────────────────────────────
-/.next/
-/out/
-/build
+.next/
+out/
+build/
 
 # ── Testing ──────────────────────────────────────────────────────────────────
-/coverage
+coverage/
 
 # ── Environment variables ─────────────────────────────────────────────────────
 .env
