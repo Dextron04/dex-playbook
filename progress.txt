@@ -46,3 +46,12 @@
   - zsh glob expansion breaks `git add` for paths with brackets; always quote the path: `git add "apps/app/app/room/[roomId]/page.tsx"`
   - Stickies remain in local CanvasWorkspace state in this story; US-007 will move them to useRoom
 ---
+
+## 2026-02-20 - US-007
+- What was implemented: Moved `stickies` state from local `useState` in CanvasWorkspace to `useRoom`. Added `addSticky` helper to `useRoom.ts` (mirrors `addStroke`). Updated `handleMouseDown` sticky branch to create a sticky, call `addSticky(sticky)` optimistically, and emit `socket.emit('sticky_add', { roomId, sticky })`. Removed `setStickies(INITIAL_STICKIES)` from the clear handler (now just `clearCanvasLocal()` + emit). Deduplication already handled in `useRoom`'s `sticky_added` handler from US-005.
+- Files changed: `apps/app/hooks/useRoom.ts` (addSticky helper + RoomState interface), `apps/app/components/CanvasWorkspace.tsx` (stickies from useRoom, sticky emit, clear fix)
+- **Learnings for future iterations:**
+  - `INITIAL_STICKIES` and `COLLABORATORS` constants remain in CanvasWorkspace (unused) — US-009 removes them as part of wiring live presence
+  - `clearCanvasLocal` already clears both strokes and stickies — no need for separate sticky state reset on clear
+  - Pattern is identical to strokes: optimistic local add + socket emit + server broadcast + dedup on receive
+---

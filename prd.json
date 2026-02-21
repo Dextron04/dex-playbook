@@ -138,7 +138,7 @@
         "Verify in browser using dev-browser skill (open two tabs, place a sticky in one, confirm it appears in both)"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
