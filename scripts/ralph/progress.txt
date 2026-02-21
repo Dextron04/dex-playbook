@@ -1,0 +1,25 @@
+# Ralph Progress Log
+Started: Fri Feb 20 23:12:50 PST 2026
+
+## Codebase Patterns
+- Root is npm workspaces monorepo (`apps/*`, `packages/*`), but `services/ws-server` is NOT in workspaces — it has its own standalone `package.json` and `node_modules`
+- Docker compose uses `context: .` (repo root) for all services; Dockerfiles must use paths relative to repo root (e.g., `COPY services/ws-server/package.json ./`)
+- Existing app Dockerfiles have 3 stages: `deps` → `builder` → `runner`; ws-server uses 2 stages: `deps` (install + compile) → `runner`
+- `docker-compose.dev.yml` uses `target: deps` to stop at dependency install stage, then runs dev commands via bind-mounted volumes
+
+---
+
+## 2026-02-20 - US-001
+- Implemented standalone Socket.io WebSocket server at `services/ws-server/`
+- Created `package.json` with `socket.io`, `typescript`, `ts-node-dev` dependencies
+- Created `tsconfig.json` targeting Node 20 (ES2020, commonjs)
+- Created `src/index.ts` with HTTP + Socket.io server on `process.env.PORT ?? 3002`, CORS `origin: '*'`
+- Created multi-stage `Dockerfile` (deps + runner) based on `node:20-alpine`
+- Added `ws` service to `docker-compose.yml` (production) and `docker-compose.dev.yml` (dev with hot reload)
+- Files changed: `services/ws-server/package.json`, `services/ws-server/tsconfig.json`, `services/ws-server/src/index.ts`, `services/ws-server/Dockerfile`, `docker-compose.yml`, `docker-compose.dev.yml`
+- **Learnings for future iterations:**
+  - Docker build context is `.` (repo root), so all `COPY` paths in Dockerfiles must be relative to repo root
+  - The ws-server has its own separate `npm install` — NOT part of the root workspace
+  - `docker compose -f docker-compose.yml build ws` succeeded cleanly
+  - TypeScript typecheck (`npx tsc --noEmit`) passes with no errors
+---
