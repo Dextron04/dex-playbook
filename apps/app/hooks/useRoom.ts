@@ -46,6 +46,7 @@ interface RoomState {
   remoteUsers: User[];
   remoteCursors: Map<string, RemoteCursor>;
   addStroke: (stroke: Stroke) => void;
+  addSticky: (sticky: StickyNote) => void;
   clearCanvasLocal: () => void;
 }
 
@@ -59,6 +60,10 @@ export function useRoom({ roomId, userName, userColor }: RoomParams): RoomState 
 
   const addStroke = (stroke: Stroke) => {
     setStrokes((prev) => [...prev, stroke]);
+  };
+
+  const addSticky = (sticky: StickyNote) => {
+    setStickies((prev) => [...prev, sticky]);
   };
 
   const clearCanvasLocal = () => {
@@ -156,6 +161,7 @@ export function useRoom({ roomId, userName, userColor }: RoomParams): RoomState 
     remoteCursors,
     connected,
     addStroke,
+    addSticky,
     clearCanvasLocal,
   };
 }

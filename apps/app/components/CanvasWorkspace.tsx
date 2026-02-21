@@ -40,11 +40,10 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
   const [zoom,         setZoom]         = useState(100);
   const [roomName,     setRoomName]     = useState("My Room");
   const [editingName,  setEditingName]  = useState(false);
-  const [stickies,     setStickies]     = useState<StickyNote[]>(INITIAL_STICKIES);
   const isDrawing     = useRef(false);
   const currentStroke = useRef<{ x: number; y: number }[]>([]);
 
-  const { socket, strokes, addStroke, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
+  const { socket, strokes, stickies, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -149,10 +148,15 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
       currentStroke.current = [getPos(e)];
     } else if (activeTool === "sticky") {
       const pos = getPos(e);
-      setStickies((prev) => [
-        ...prev,
-        { id: Date.now().toString(), x: pos.x - 90, y: pos.y - 55, color: activeColor, text: "New note\nClick to edit" },
-      ]);
+      const sticky: StickyNote = {
+        id: Date.now().toString(),
+        x: pos.x - 90,
+        y: pos.y - 55,
+        color: activeColor,
+        text: "New note\nClick to edit",
+      };
+      addSticky(sticky);
+      socket?.emit("sticky_add", { roomId, sticky });
     }
   };
 
@@ -278,7 +282,7 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
           <div className="w-6 h-px bg-[#1A0533] my-1" />
           <button
             title="Clear canvas"
-            onClick={() => { clearCanvasLocal(); setStickies(INITIAL_STICKIES); socket?.emit("canvas_clear", { roomId }); }}
+            onClick={() => { clearCanvasLocal(); socket?.emit("canvas_clear", { roomId }); }}
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm text-[#52525B] hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             ⌫
