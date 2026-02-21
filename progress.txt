@@ -1,0 +1,20 @@
+## Codebase Patterns
+- Next.js app uses `@/` path alias mapping to the app root (`apps/app/`)
+- Canvas component is at `apps/app/components/CanvasWorkspace.tsx`
+- Lobby page is at `apps/app/app/page.tsx`; room pages go under `apps/app/app/room/[roomId]/`
+- Use `"use client"` directive for all interactive pages/components
+- Layout uses Plus Jakarta Sans via CSS variable `--font-jakarta`
+- Color palette: bg `#080012`, card `#1A0533`, primary purple `#8B5CF6`
+- Typecheck: `cd apps/app && npx tsc --noEmit`
+
+---
+
+## 2026-02-20 - US-004
+- What was implemented: Created `apps/app/app/room/[roomId]/page.tsx` — a Next.js dynamic route that renders the CanvasWorkspace behind a display-name modal. Modal blocks the canvas until user enters a name (max 20 chars) and clicks "Join Room" or presses Enter. On submit, a random color is picked from the standard COLORS array and stored in component state alongside the name.
+- Files changed: `apps/app/app/room/[roomId]/page.tsx` (created)
+- **Learnings for future iterations:**
+  - `useParams()` from `next/navigation` provides `roomId` in client components inside the `[roomId]` segment
+  - Modal is rendered as an absolutely positioned overlay with `z-50`; the canvas renders underneath at all times (no conditional render of CanvasWorkspace) which avoids remounting
+  - TypeScript path alias `@/components/CanvasWorkspace` resolves correctly from any nested route
+  - `autoFocus` on the name input works without needing a manual `ref.current.focus()` call in useEffect
+---
