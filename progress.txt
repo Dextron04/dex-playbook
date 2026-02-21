@@ -6,6 +6,9 @@
 - Layout uses Plus Jakarta Sans via CSS variable `--font-jakarta`
 - Color palette: bg `#080012`, card `#1A0533`, primary purple `#8B5CF6`
 - Typecheck: `cd apps/app && npx tsc --noEmit`
+- Custom hooks live in `apps/app/hooks/`; socket hook is `useRoom.ts`
+- `socket.io-client` v4 is installed; WS URL from `NEXT_PUBLIC_WS_URL` env var (default `http://localhost:3002`)
+- `useRoom` hook uses `useRef` to hold the socket, returns it for emit calls by callers
 
 ---
 
@@ -17,4 +20,15 @@
   - Modal is rendered as an absolutely positioned overlay with `z-50`; the canvas renders underneath at all times (no conditional render of CanvasWorkspace) which avoids remounting
   - TypeScript path alias `@/components/CanvasWorkspace` resolves correctly from any nested route
   - `autoFocus` on the name input works without needing a manual `ref.current.focus()` call in useEffect
+---
+
+## 2026-02-20 - US-005
+- What was implemented: Created `apps/app/hooks/useRoom.ts` — a custom React hook that manages the Socket.io connection lifecycle. Installed `socket.io-client` v4 in `apps/app`. Created `apps/app/.env.local.example` with `NEXT_PUBLIC_WS_URL=http://localhost:3002`.
+- Files changed: `apps/app/hooks/useRoom.ts` (created), `apps/app/.env.local.example` (created), `apps/app/package.json` (socket.io-client added), `package-lock.json` (updated)
+- **Learnings for future iterations:**
+  - Hook returns `socket` directly (from a `useRef`) so callers can call `socket.emit(...)` for outbound events (stroke_add, cursor_move, etc.)
+  - `remoteCursors` is a `Map<socketId, { x, y, name, color }>` — use state setter with `new Map(prev)` to trigger re-renders
+  - `user_left` handler must also remove the departing user from `remoteCursors` to prevent stale cursor overlays
+  - The `"use client"` directive at the top of hooks files is needed for Next.js App Router compatibility when the hook uses browser APIs
+  - `.env.local` is already gitignored; `.env.local.example` is NOT (different pattern, not a wildcard match)
 ---
