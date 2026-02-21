@@ -43,7 +43,9 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
   const isDrawing     = useRef(false);
   const currentStroke = useRef<{ x: number; y: number }[]>([]);
 
-  const { socket, strokes, stickies, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
+  const lastEmit = useRef(0);
+
+  const { socket, strokes, stickies, remoteCursors, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -161,6 +163,12 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const now = Date.now();
+    if (socket && now - lastEmit.current >= 30) {
+      const pos = getPos(e);
+      socket.emit("cursor_move", { roomId, x: pos.x, y: pos.y });
+      lastEmit.current = now;
+    }
     if (!isDrawing.current) return;
     const pos = getPos(e);
     currentStroke.current.push(pos);
@@ -304,6 +312,38 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           />
+          {/* Remote cursor overlay */}
+          <div
+            className="absolute inset-0 w-full h-full"
+            style={{
+              pointerEvents: "none",
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: "center center",
+            }}
+          >
+            {Array.from(remoteCursors.entries()).map(([userId, cursor]) => (
+              <div
+                key={userId}
+                className="absolute flex items-start"
+                style={{ left: cursor.x, top: cursor.y }}
+              >
+                <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ flexShrink: 0 }}>
+                  <path
+                    d="M1 1L1 16L4.5 12.5L6.5 18L8.5 17L6.5 11.5L11 11.5Z"
+                    fill={cursor.color}
+                    stroke="rgba(0,0,0,0.4)"
+                    strokeWidth="0.5"
+                  />
+                </svg>
+                <span
+                  className="text-white font-semibold rounded-full whitespace-nowrap ml-1"
+                  style={{ backgroundColor: cursor.color, fontSize: 10, padding: "2px 6px", marginTop: 2 }}
+                >
+                  {cursor.name}
+                </span>
+              </div>
+            ))}
+          </div>
           {/* Zoom */}
           <div className="absolute bottom-4 left-4 flex items-center gap-1 bg-[#1A0533] border border-[#2D1060] rounded-lg px-2 py-1.5">
             <button onClick={() => setZoom((z) => Math.max(25, z - 25))} className="text-[#52525B] hover:text-white text-sm w-5 h-5 flex items-center justify-center">−</button>

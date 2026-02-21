@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
     const user = room.users.get(socket.id);
     if (user) {
       user.cursor = { x, y };
-      socket.to(roomId).emit("cursor_moved", { socketId: socket.id, x, y });
+      socket.to(roomId).emit("cursor_moved", { userId: socket.id, x, y, name: user.name, color: user.color });
     }
   });
 
