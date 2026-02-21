@@ -20,3 +20,13 @@ services:
     environment:
       NODE_ENV: production
     restart: unless-stopped
+
+  ws:
+    build:
+      context: .
+      dockerfile: services/ws-server/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+    restart: unless-stopped

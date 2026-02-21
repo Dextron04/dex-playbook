@@ -29,6 +29,20 @@ services:
       - ./packages:/repo/packages
       - app_nm:/repo/node_modules       # preserve container's node_modules
 
+  ws:
+    build:
+      context: .
+      dockerfile: services/ws-server/Dockerfile
+      target: deps
+    command: sh -c "npx ts-node-dev --respawn --transpile-only src/index.ts"
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+    volumes:
+      - ./services/ws-server/src:/app/src
+
 volumes:
   landing_nm:
   app_nm:
