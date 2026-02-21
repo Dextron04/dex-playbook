@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useRoom, Stroke, StickyNote } from "@/hooks/useRoom";
 
 type Tool = "select" | "pen" | "sticky" | "text" | "eraser";
 
@@ -14,20 +15,6 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
 
 const COLORS = ["#8B5CF6", "#14B8A6", "#F472B6", "#FB923C", "#34D399", "#A78BFA"];
 
-interface Stroke {
-  points: { x: number; y: number }[];
-  color: string;
-  width: number;
-}
-
-interface StickyNote {
-  id: string;
-  x: number;
-  y: number;
-  color: string;
-  text: string;
-}
-
 const INITIAL_STICKIES: StickyNote[] = [
   { id: "1", x: 140, y: 120, color: "#8B5CF6", text: "Ship v1 🚀\nby Friday" },
   { id: "2", x: 380, y: 90,  color: "#14B8A6", text: "User interviews\n5 done, 3 left" },
@@ -40,17 +27,24 @@ const COLLABORATORS = [
   { name: "Alex", color: "#F472B6" },
 ];
 
-export default function CanvasWorkspace() {
+interface CanvasWorkspaceProps {
+  roomId: string;
+  userName: string;
+  userColor: string;
+}
+
+export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasWorkspaceProps) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const [activeTool,   setActiveTool]   = useState<Tool>("pen");
   const [activeColor,  setActiveColor]  = useState(COLORS[0]);
   const [zoom,         setZoom]         = useState(100);
   const [roomName,     setRoomName]     = useState("My Room");
   const [editingName,  setEditingName]  = useState(false);
-  const [strokes,      setStrokes]      = useState<Stroke[]>([]);
   const [stickies,     setStickies]     = useState<StickyNote[]>(INITIAL_STICKIES);
   const isDrawing     = useRef(false);
   const currentStroke = useRef<{ x: number; y: number }[]>([]);
+
+  const { socket, strokes, addStroke, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -191,10 +185,14 @@ export default function CanvasWorkspace() {
     if (!isDrawing.current) return;
     isDrawing.current = false;
     if (currentStroke.current.length > 1) {
-      setStrokes((prev) => [
-        ...prev,
-        { points: [...currentStroke.current], color: activeTool === "eraser" ? "#0B0018" : activeColor, width: activeTool === "eraser" ? 20 : 3 },
-      ]);
+      const stroke: Stroke = {
+        id: Date.now().toString(),
+        points: [...currentStroke.current],
+        color: activeTool === "eraser" ? "#0B0018" : activeColor,
+        width: activeTool === "eraser" ? 20 : 3,
+      };
+      addStroke(stroke);
+      socket?.emit("stroke_add", { roomId, stroke });
     }
     currentStroke.current = [];
   };
@@ -280,7 +278,7 @@ export default function CanvasWorkspace() {
           <div className="w-6 h-px bg-[#1A0533] my-1" />
           <button
             title="Clear canvas"
-            onClick={() => { setStrokes([]); setStickies(INITIAL_STICKIES); }}
+            onClick={() => { clearCanvasLocal(); setStickies(INITIAL_STICKIES); socket?.emit("canvas_clear", { roomId }); }}
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm text-[#52525B] hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             ⌫

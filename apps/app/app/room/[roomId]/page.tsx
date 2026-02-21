@@ -33,7 +33,7 @@ export default function RoomPage() {
 
   return (
     <div className="relative w-full h-screen">
-      <CanvasWorkspace />
+      <CanvasWorkspace roomId={roomId} userName={userName} userColor={userColor ?? ""} />
 
       {showModal && (
         <div
