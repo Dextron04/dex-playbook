@@ -36,3 +36,16 @@ Started: Fri Feb 20 23:12:50 PST 2026
   - `join_room` sends `room_state` with `users: Array.from(room.users.values())` since Maps aren't JSON-serializable
   - TypeScript `Map` non-null assertions (`!`) are safe after checking `has()` or after `set()`
 ---
+
+## 2026-02-20 - US-003
+- Replaced `apps/app/app/page.tsx` with a lobby/home page for creating or joining rooms
+- Lobby renders on `#080012` background with a `#12002B` card
+- Card has: 'D' logo mark (purple `#8B5CF6` rounded square), 'Dex's Playbook' heading in Plus Jakarta Sans, 'Create a room' button (purple, rounded-full), divider, and join input + 'Join' button
+- 'Create a room' generates 8-char alphanumeric roomId via `Math.random().toString(36).slice(2, 10)` and navigates with `router.push`
+- Join input extracts roomId from URL (regex `/\/room\/([a-z0-9]+)/i`) or treats input as raw roomId; 'Join' button disabled when input is empty
+- Files changed: `apps/app/app/page.tsx`
+- **Learnings for future iterations:**
+  - Plus Jakarta Sans is already configured in `layout.tsx` as `var(--font-jakarta)` CSS variable
+  - The room route `/room/[roomId]` doesn't exist yet (created in US-004); lobby nav code is correct and will work once route is created
+  - `npx next build` (from `apps/app/` dir) is the right way to verify the Next.js build
+---
