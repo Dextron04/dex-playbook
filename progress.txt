@@ -2,6 +2,8 @@
 - For optimistic state updates in useRoom callers: extend hook return with `addStroke` / `clearCanvasLocal` helpers — keeps the hook as single source of truth without exposing raw setters
 - Guard useRoom's useEffect with `if (!roomId || !userName || !userColor) return` so the socket doesn't connect until the modal is dismissed
 - Stroke type in useRoom has `id: string` field; always assign `id: Date.now().toString()` before emitting `stroke_add`
+- WS server `cursor_moved` event must include `userId` (not `socketId`), `name`, and `color` alongside `x` and `y` so the client can identify and label cursors without a separate lookup
+- Cursor overlay trick: give the overlay `div` the same `transform: scale(zoom/100)` + `transformOrigin: center center` as the canvas — then canvas coordinate space maps 1:1 to overlay pixel space at all zoom levels
 - Next.js app uses `@/` path alias mapping to the app root (`apps/app/`)
 - Canvas component is at `apps/app/components/CanvasWorkspace.tsx`
 - Lobby page is at `apps/app/app/page.tsx`; room pages go under `apps/app/app/room/[roomId]/`
@@ -54,4 +56,14 @@
   - `INITIAL_STICKIES` and `COLLABORATORS` constants remain in CanvasWorkspace (unused) — US-009 removes them as part of wiring live presence
   - `clearCanvasLocal` already clears both strokes and stickies — no need for separate sticky state reset on clear
   - Pattern is identical to strokes: optimistic local add + socket emit + server broadcast + dedup on receive
+---
+
+## 2026-02-20 - US-008
+- What was implemented: Added live cursor tracking. On `mousemove`, local cursor position (canvas coordinate space) is throttled (30ms `lastEmit` ref guard) and emitted via `socket.emit('cursor_move', { roomId, x, y })`. A transparent `pointer-events: none` overlay div (same transform as canvas) is rendered on top of the canvas; each `remoteCursors` entry renders a colored SVG cursor arrow + colored name badge pill. Fixed WS server `cursor_moved` event to broadcast `{ userId, x, y, name, color }` (was incorrectly emitting `socketId` and missing `name`/`color`).
+- Files changed: `apps/app/components/CanvasWorkspace.tsx` (lastEmit ref, cursor emit in handleMouseMove, overlay div with cursor indicators), `services/ws-server/src/index.ts` (cursor_moved payload fix)
+- **Learnings for future iterations:**
+  - WS server was emitting `socketId` in `cursor_moved` but the client hook expected `userId` — always verify event payload field names match between server emit and client handler
+  - Overlay trick: give overlay the same CSS transform as the canvas (`scale(zoom/100)`, same transformOrigin) so canvas coordinate space maps 1:1 to overlay pixel space, eliminating need for coordinate conversion math
+  - `useRef(0)` for `lastEmit` is a clean throttle pattern: `if (now - lastEmit.current >= 30) { emit(); lastEmit.current = now; }`
+  - `remoteCursors` is already managed in `useRoom.ts` — CanvasWorkspace just needs to destructure it and render
 ---

@@ -156,7 +156,7 @@
         "Verify in browser using dev-browser skill (open two tabs to same room URL, move mouse in tab 1, confirm colored cursor with name appears and moves in tab 2)"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
