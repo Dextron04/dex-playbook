@@ -23,3 +23,16 @@ Started: Fri Feb 20 23:12:50 PST 2026
   - `docker compose -f docker-compose.yml build ws` succeeded cleanly
   - TypeScript typecheck (`npx tsc --noEmit`) passes with no errors
 ---
+
+## 2026-02-20 - US-002
+- Implemented in-memory room state and event handlers for Socket.io server
+- Created `services/ws-server/src/types.ts` with `User`, `Stroke`, `StickyNote`, `RoomState` interfaces
+- Created `services/ws-server/src/rooms.ts` with `Map<roomId, RoomState>`, `getOrCreateRoom`, `deleteRoomIfEmpty`
+- Updated `services/ws-server/src/index.ts` to handle all canvas sync events: `join_room`, `cursor_move`, `stroke_add`, `sticky_add`, `sticky_update`, `canvas_clear`, and `disconnect`
+- Files changed: `services/ws-server/src/types.ts`, `services/ws-server/src/rooms.ts`, `services/ws-server/src/index.ts`
+- **Learnings for future iterations:**
+  - Track `currentRoomId` as a closure variable per socket connection for clean disconnect handling
+  - `canvas_clear` must use `io.to(roomId)` (not `socket.to`) to include the sender
+  - `join_room` sends `room_state` with `users: Array.from(room.users.values())` since Maps aren't JSON-serializable
+  - TypeScript `Map` non-null assertions (`!`) are safe after checking `has()` or after `set()`
+---
