@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useRoom, Stroke, StickyNote } from "@/hooks/useRoom";
 
 type Tool = "select" | "pen" | "sticky" | "text" | "eraser";
 
@@ -14,43 +15,27 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
 
 const COLORS = ["#8B5CF6", "#14B8A6", "#F472B6", "#FB923C", "#34D399", "#A78BFA"];
 
-interface Stroke {
-  points: { x: number; y: number }[];
-  color: string;
-  width: number;
+
+interface CanvasWorkspaceProps {
+  roomId: string;
+  userName: string;
+  userColor: string;
 }
 
-interface StickyNote {
-  id: string;
-  x: number;
-  y: number;
-  color: string;
-  text: string;
-}
-
-const INITIAL_STICKIES: StickyNote[] = [
-  { id: "1", x: 140, y: 120, color: "#8B5CF6", text: "Ship v1 🚀\nby Friday" },
-  { id: "2", x: 380, y: 90,  color: "#14B8A6", text: "User interviews\n5 done, 3 left" },
-  { id: "3", x: 640, y: 130, color: "#F472B6", text: "Brainstorm ✨\nkeep it fun" },
-];
-
-const COLLABORATORS = [
-  { name: "Sara", color: "#A78BFA" },
-  { name: "Raj",  color: "#14B8A6" },
-  { name: "Alex", color: "#F472B6" },
-];
-
-export default function CanvasWorkspace() {
+export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasWorkspaceProps) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const [activeTool,   setActiveTool]   = useState<Tool>("pen");
   const [activeColor,  setActiveColor]  = useState(COLORS[0]);
   const [zoom,         setZoom]         = useState(100);
   const [roomName,     setRoomName]     = useState("My Room");
   const [editingName,  setEditingName]  = useState(false);
-  const [strokes,      setStrokes]      = useState<Stroke[]>([]);
-  const [stickies,     setStickies]     = useState<StickyNote[]>(INITIAL_STICKIES);
   const isDrawing     = useRef(false);
   const currentStroke = useRef<{ x: number; y: number }[]>([]);
+
+  const lastEmit = useRef(0);
+  const [copied, setCopied] = useState(false);
+
+  const { socket, strokes, stickies, remoteUsers, remoteCursors, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -155,14 +140,25 @@ export default function CanvasWorkspace() {
       currentStroke.current = [getPos(e)];
     } else if (activeTool === "sticky") {
       const pos = getPos(e);
-      setStickies((prev) => [
-        ...prev,
-        { id: Date.now().toString(), x: pos.x - 90, y: pos.y - 55, color: activeColor, text: "New note\nClick to edit" },
-      ]);
+      const sticky: StickyNote = {
+        id: Date.now().toString(),
+        x: pos.x - 90,
+        y: pos.y - 55,
+        color: activeColor,
+        text: "New note\nClick to edit",
+      };
+      addSticky(sticky);
+      socket?.emit("sticky_add", { roomId, sticky });
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const now = Date.now();
+    if (socket && now - lastEmit.current >= 30) {
+      const pos = getPos(e);
+      socket.emit("cursor_move", { roomId, x: pos.x, y: pos.y });
+      lastEmit.current = now;
+    }
     if (!isDrawing.current) return;
     const pos = getPos(e);
     currentStroke.current.push(pos);
@@ -191,10 +187,14 @@ export default function CanvasWorkspace() {
     if (!isDrawing.current) return;
     isDrawing.current = false;
     if (currentStroke.current.length > 1) {
-      setStrokes((prev) => [
-        ...prev,
-        { points: [...currentStroke.current], color: activeTool === "eraser" ? "#0B0018" : activeColor, width: activeTool === "eraser" ? 20 : 3 },
-      ]);
+      const stroke: Stroke = {
+        id: Date.now().toString(),
+        points: [...currentStroke.current],
+        color: activeTool === "eraser" ? "#0B0018" : activeColor,
+        width: activeTool === "eraser" ? 20 : 3,
+      };
+      addStroke(stroke);
+      socket?.emit("stroke_add", { roomId, stroke });
     }
     currentStroke.current = [];
   };
@@ -231,19 +231,45 @@ export default function CanvasWorkspace() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex -space-x-1.5">
-            {COLLABORATORS.map((c) => (
-              <div
-                key={c.name}
-                title={c.name}
-                className="w-7 h-7 rounded-full border-2 border-[#080012] flex items-center justify-center text-xs font-bold"
-                style={{ backgroundColor: c.color }}
-              >
-                {c.name[0]}
-              </div>
-            ))}
+            {(() => {
+              const allUsers = [
+                { id: "local", name: userName, color: userColor },
+                ...remoteUsers,
+              ];
+              const MAX = 5;
+              const visible = allUsers.slice(0, MAX);
+              const overflow = allUsers.length - MAX;
+              return (
+                <>
+                  {visible.map((u) => (
+                    <div
+                      key={u.id}
+                      title={u.name}
+                      className="w-7 h-7 rounded-full border-2 border-[#080012] flex items-center justify-center text-xs font-bold"
+                      style={{ backgroundColor: u.color }}
+                    >
+                      {u.name[0]}
+                    </div>
+                  ))}
+                  {overflow > 0 && (
+                    <div className="w-7 h-7 rounded-full border-2 border-[#080012] flex items-center justify-center text-xs font-bold bg-[#3F3F46] text-white">
+                      +{overflow}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
-          <button className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold rounded-lg transition-colors">
-            Share
+          <button
+            className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold rounded-lg transition-colors"
+            onClick={() => {
+              navigator.clipboard?.writeText(window.location.href).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }).catch(() => {});
+            }}
+          >
+            {copied ? "Copied!" : "Share"}
           </button>
         </div>
       </header>
@@ -280,7 +306,7 @@ export default function CanvasWorkspace() {
           <div className="w-6 h-px bg-[#1A0533] my-1" />
           <button
             title="Clear canvas"
-            onClick={() => { setStrokes([]); setStickies(INITIAL_STICKIES); }}
+            onClick={() => { clearCanvasLocal(); socket?.emit("canvas_clear", { roomId }); }}
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm text-[#52525B] hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             ⌫
@@ -302,6 +328,38 @@ export default function CanvasWorkspace() {
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           />
+          {/* Remote cursor overlay */}
+          <div
+            className="absolute inset-0 w-full h-full"
+            style={{
+              pointerEvents: "none",
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: "center center",
+            }}
+          >
+            {Array.from(remoteCursors.entries()).map(([userId, cursor]) => (
+              <div
+                key={userId}
+                className="absolute flex items-start"
+                style={{ left: cursor.x, top: cursor.y }}
+              >
+                <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ flexShrink: 0 }}>
+                  <path
+                    d="M1 1L1 16L4.5 12.5L6.5 18L8.5 17L6.5 11.5L11 11.5Z"
+                    fill={cursor.color}
+                    stroke="rgba(0,0,0,0.4)"
+                    strokeWidth="0.5"
+                  />
+                </svg>
+                <span
+                  className="text-white font-semibold rounded-full whitespace-nowrap ml-1"
+                  style={{ backgroundColor: cursor.color, fontSize: 10, padding: "2px 6px", marginTop: 2 }}
+                >
+                  {cursor.name}
+                </span>
+              </div>
+            ))}
+          </div>
           {/* Zoom */}
           <div className="absolute bottom-4 left-4 flex items-center gap-1 bg-[#1A0533] border border-[#2D1060] rounded-lg px-2 py-1.5">
             <button onClick={() => setZoom((z) => Math.max(25, z - 25))} className="text-[#52525B] hover:text-white text-sm w-5 h-5 flex items-center justify-center">−</button>

@@ -1,0 +1,196 @@
+{
+  "project": "Dex's Playbook",
+  "branchName": "ralph/collaborative-canvas-mvp",
+  "description": "Real-Time Collaborative Canvas MVP — WebSocket backend, room routing, live drawing sync, cursor tracking, and presence for multi-user canvas sessions",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "WebSocket server — project setup and Docker integration",
+      "description": "As a developer, I need a standalone Socket.io server scaffolded with its own package.json, Dockerfile, and docker-compose entries so the real-time backend can run alongside the Next.js apps.",
+      "acceptanceCriteria": [
+        "Directory `services/ws-server/` exists with `package.json` listing dependencies: `socket.io`, `typescript`, `ts-node-dev`",
+        "Directory contains `tsconfig.json` targeting Node 20, and `src/index.ts` as the entry point",
+        "`src/index.ts` starts an HTTP + Socket.io server that listens on `process.env.PORT ?? 3002` and logs 'WS server listening on :3002' on startup",
+        "Socket.io CORS is configured with `origin: '*'` for local development",
+        "`services/ws-server/Dockerfile` is a valid multi-stage build (deps + runner) based on `node:20-alpine` that runs the compiled server",
+        "`docker-compose.yml` has a `ws` service: `build.context: .`, `build.dockerfile: services/ws-server/Dockerfile`, `ports: ['3002:3002']`, `environment: { PORT: 3002 }`, `restart: unless-stopped`",
+        "`docker-compose.dev.yml` has a `ws` service that mounts `./services/ws-server/src` and runs with `ts-node-dev` for hot reload on port 3002",
+        "Running `docker compose -f docker-compose.yml build ws` completes without error",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "WebSocket server — in-memory room state and event handlers",
+      "description": "As a developer, I need the Socket.io server to manage room state in memory and handle all canvas sync events so multiple clients can share a live session.",
+      "acceptanceCriteria": [
+        "File `services/ws-server/src/types.ts` defines and exports: `User { id, name, color, cursor }`, `Stroke { id, points, color, width }`, `StickyNote { id, x, y, color, text }`, `RoomState { strokes, stickies, users: Map<socketId, User> }`",
+        "File `services/ws-server/src/rooms.ts` maintains a `Map<roomId, RoomState>` and exports helpers: `getOrCreateRoom(roomId)`, `deleteRoomIfEmpty(roomId)`",
+        "Server in `src/index.ts` handles `join_room` event: adds user to room, emits `room_state` (strokes, stickies, users as array) back to joining socket, broadcasts `user_joined` to rest of room",
+        "Server handles `cursor_move` event: updates user cursor in room state, broadcasts `cursor_moved` to all other sockets in the room",
+        "Server handles `stroke_add` event: appends stroke to room's strokes array, broadcasts `stroke_added` to all other sockets in the room",
+        "Server handles `sticky_add` event: appends sticky to room's stickies array, broadcasts `sticky_added` to all other sockets in the room",
+        "Server handles `sticky_update` event: updates sticky text by id in room state, broadcasts `sticky_updated` to all other sockets",
+        "Server handles `canvas_clear` event: clears room's strokes and stickies arrays, broadcasts `canvas_cleared` to all sockets in the room including sender",
+        "On socket `disconnect`: removes user from room, broadcasts `user_left` with `{ userId: socket.id }` to remaining users, calls `deleteRoomIfEmpty`",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "App home/lobby page — create or join a room",
+      "description": "As a user, I want a home screen at `localhost:3001` where I can create a new room or join an existing one by pasting a link.",
+      "acceptanceCriteria": [
+        "Current `apps/app/app/page.tsx` (which renders CanvasWorkspace) is replaced with a lobby/home page — the CanvasWorkspace is moved to `apps/app/app/room/[roomId]/page.tsx` (created in US-004)",
+        "Lobby page renders a vertically centered dark card on a `#080012` background",
+        "Card contains: the 'D' logo mark (purple rounded square) + 'Dex's Playbook' heading in Plus Jakarta Sans",
+        "Card contains a 'Create a room' primary button (purple `#8B5CF6`, rounded-full)",
+        "Clicking 'Create a room' generates a random 8-character alphanumeric room ID via `Math.random().toString(36).slice(2, 10)` and navigates to `/room/[roomId]` using Next.js `router.push`",
+        "Card contains a text input with placeholder 'Paste a room link...' and a 'Join' button beside it",
+        "Clicking 'Join' (or pressing Enter) extracts the roomId from the pasted URL (or treats the input as a raw roomId if no URL detected) and navigates to `/room/[roomId]`",
+        "If the join input is empty, the 'Join' button is disabled",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Room route and display name join modal",
+      "description": "As a user, I want to enter my display name when opening a room URL so that other participants can identify me.",
+      "acceptanceCriteria": [
+        "Next.js dynamic route `apps/app/app/room/[roomId]/page.tsx` exists and renders the canvas workspace page",
+        "On load, if no display name has been set in component state, a centered modal overlay (dark background, `#1A0533` card, rounded-2xl) blocks the canvas",
+        "Modal contains: a heading 'Join the room', a text input for display name (max 20 characters, autofocused), and a 'Join Room' button",
+        "The 'Join Room' button is disabled when the input is empty",
+        "Pressing Enter in the input submits the form",
+        "On submit, a color is randomly picked from `['#8B5CF6', '#14B8A6', '#F472B6', '#FB923C', '#34D399', '#A78BFA']` and stored alongside the name in component state",
+        "After submitting the modal disappears and the canvas is visible and interactive",
+        "The `roomId` from the URL params is accessible via `useParams()` or passed as a prop to child components",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "useRoom hook — Socket.io connection and state management",
+      "description": "As a developer, I need a custom React hook that manages the Socket.io connection lifecycle and exposes real-time room state so the canvas component can remain focused on rendering.",
+      "acceptanceCriteria": [
+        "File `apps/app/hooks/useRoom.ts` created",
+        "`socket.io-client` is installed in `apps/app` (`package.json` dependency added)",
+        "Hook signature: `useRoom({ roomId, userName, userColor }: RoomParams)` returning `{ socket, strokes, stickies, remoteUsers, remoteCursors, connected }`",
+        "Hook connects to `process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3002'` on mount and disconnects on unmount",
+        "Hook emits `join_room` with `{ roomId, userName, userColor }` when socket connects",
+        "Hook handles `room_state` event and sets initial `strokes` and `stickies` arrays in state",
+        "Hook handles `user_joined` and `user_left` events and maintains `remoteUsers: User[]` state",
+        "Hook handles `cursor_moved` event and maintains `remoteCursors: Map<socketId, { x, y, name, color }>` state",
+        "Hook handles `stroke_added` and appends to `strokes` state",
+        "Hook handles `sticky_added` and appends to `stickies` state",
+        "Hook handles `canvas_cleared` and resets `strokes` and `stickies` to empty arrays",
+        "File `apps/app/.env.local.example` created with content: `NEXT_PUBLIC_WS_URL=http://localhost:3002`",
+        "`.env.local.example` is not in `.gitignore` (it should be committed as a reference), but `.env.local` is gitignored",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Real-time drawing sync via WebSocket",
+      "description": "As a user, I want my strokes to appear on every other participant's canvas immediately after I finish drawing.",
+      "acceptanceCriteria": [
+        "`CanvasWorkspace.tsx` (now inside `apps/app/app/room/[roomId]/`) accepts `roomId`, `userName`, `userColor` as props and calls `useRoom({ roomId, userName, userColor })`",
+        "The `strokes` state in CanvasWorkspace is sourced from `useRoom` (not local useState) so remote strokes automatically trigger a re-render",
+        "When local user completes a stroke (`mouseUp`), the stroke object is emitted via `socket.emit('stroke_add', { roomId, stroke })` — the stroke is added to local state immediately (optimistic) and NOT re-added when `stroke_added` fires for own socket",
+        "Deduplication: each stroke has a unique `id` (e.g. `Date.now().toString()`); when `stroke_added` fires, skip if stroke id already exists in local strokes array",
+        "When `canvas_clear` is triggered locally, emit `socket.emit('canvas_clear', { roomId })` — canvas clears for all users",
+        "Opening the same room URL in two browser tabs: drawing in one tab produces the stroke in the other tab within ~100ms",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (open two tabs to same room URL, draw in one, confirm stroke appears in both)"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Real-time sticky note sync via WebSocket",
+      "description": "As a user, I want sticky notes I place to instantly appear on every other participant's canvas.",
+      "acceptanceCriteria": [
+        "The `stickies` state in CanvasWorkspace is sourced from `useRoom` (not local useState)",
+        "When local user places a sticky note, it is emitted via `socket.emit('sticky_add', { roomId, sticky })` and added to local state optimistically",
+        "Deduplication: skip `sticky_added` event if sticky id already exists in local stickies array",
+        "Sticky notes placed in one tab appear in a second tab open to the same room within ~100ms",
+        "New user joining a room with existing stickies sees them immediately via `room_state`",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (open two tabs, place a sticky in one, confirm it appears in both)"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Live cursor tracking — remote cursor overlay",
+      "description": "As a user, I want to see other participants' labeled cursors moving on my canvas in real time.",
+      "acceptanceCriteria": [
+        "On `mousemove` over the canvas, local cursor position (in canvas coordinate space) is throttled and emitted via `socket.emit('cursor_move', { roomId, x, y })` at most once per 30ms (use a `lastEmit` ref with `Date.now()` guard)",
+        "A transparent `div` overlay is rendered absolutely on top of the canvas element, same width and height, with `pointer-events: none`",
+        "For each entry in `remoteCursors`, a cursor indicator is rendered inside the overlay as an absolutely-positioned element at `{ left: x, top: y }`",
+        "Each cursor indicator consists of a small colored SVG/CSS arrow triangle (12×20px) and a name badge pill (user's color background, white text, rounded) to the right of the triangle",
+        "Remote cursors disappear immediately when a user leaves (their entry is removed from `remoteCursors` on `user_left`)",
+        "Cursor positions correctly map canvas coordinate space to the overlay's pixel space (account for canvas bounding rect offset)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (open two tabs to same room URL, move mouse in tab 1, confirm colored cursor with name appears and moves in tab 2)"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Live user presence in the top bar",
+      "description": "As a user, I want to see colored avatars of everyone currently in the room so I know who I'm collaborating with.",
+      "acceptanceCriteria": [
+        "The hardcoded `COLLABORATORS` constant and `INITIAL_STICKIES` constant are removed from `CanvasWorkspace.tsx`",
+        "The top bar avatar row is replaced with a live list: first the local user's own avatar, then one avatar per entry in `remoteUsers`",
+        "Each avatar is a `w-7 h-7` rounded-full div with `backgroundColor: user.color`, showing the user's first initial in white bold text, and `title={user.name}` for native tooltip on hover",
+        "If total users (local + remote) exceeds 5, show 5 avatars then a `+N` gray pill showing how many more",
+        "When a remote user leaves, their avatar is gone from the bar within 1 second (driven by `user_left` event updating `remoteUsers`)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (open two tabs to same room, both users appear in the presence bar; close one tab, avatar disappears in the other)"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Share button — copy room link to clipboard",
+      "description": "As a user, I want to copy the room link with one click so I can invite friends without manually copying the URL bar.",
+      "acceptanceCriteria": [
+        "The 'Share' button in the top bar of CanvasWorkspace calls `navigator.clipboard.writeText(window.location.href)` on click",
+        "After a successful copy, the button label changes from 'Share' to 'Copied!' for exactly 2 seconds, then reverts to 'Share'",
+        "If `navigator.clipboard` is unavailable (non-secure context), the click handler catches the error silently and does not throw",
+        "Button uses existing purple styling: `bg-[#8B5CF6] hover:bg-[#7C3AED]`, `text-white`, `text-xs font-semibold`, `rounded-lg`, `px-4 py-1.5`",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (click Share button, confirm label changes to 'Copied!' then reverts)"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}
