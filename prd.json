@@ -173,7 +173,7 @@
         "Verify in browser using dev-browser skill (open two tabs to same room, both users appear in the presence bar; close one tab, avatar disappears in the other)"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -189,7 +189,7 @@
         "Verify in browser using dev-browser skill (click Share button, confirm label changes to 'Copied!' then reverts)"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

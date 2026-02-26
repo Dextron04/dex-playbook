@@ -58,6 +58,15 @@
   - Pattern is identical to strokes: optimistic local add + socket emit + server broadcast + dedup on receive
 ---
 
+## 2026-02-25 - US-010
+- What was implemented: Added clipboard copy to the Share button in CanvasWorkspace. Click handler calls `navigator.clipboard?.writeText(window.location.href)`, then toggles `copied` state to true for 2 seconds before reverting. Errors are caught silently. Button label switches between "Share" and "Copied!" accordingly.
+- Files changed: `apps/app/components/CanvasWorkspace.tsx` (added `copied` state, onClick handler, conditional label)
+- **Learnings for future iterations:**
+  - `navigator.clipboard` is optional-chained (`?.`) to guard against unavailable clipboard API; chain `.catch(() => {})` for silent failure on rejection
+  - `setTimeout(() => setCopied(false), 2000)` inside the `.then()` callback is the cleanest pattern — no cleanup needed since 2s is short
+  - No new state file or hook needed; this is pure component-local state
+---
+
 ## 2026-02-20 - US-008
 - What was implemented: Added live cursor tracking. On `mousemove`, local cursor position (canvas coordinate space) is throttled (30ms `lastEmit` ref guard) and emitted via `socket.emit('cursor_move', { roomId, x, y })`. A transparent `pointer-events: none` overlay div (same transform as canvas) is rendered on top of the canvas; each `remoteCursors` entry renders a colored SVG cursor arrow + colored name badge pill. Fixed WS server `cursor_moved` event to broadcast `{ userId, x, y, name, color }` (was incorrectly emitting `socketId` and missing `name`/`color`).
 - Files changed: `apps/app/components/CanvasWorkspace.tsx` (lastEmit ref, cursor emit in handleMouseMove, overlay div with cursor indicators), `services/ws-server/src/index.ts` (cursor_moved payload fix)
