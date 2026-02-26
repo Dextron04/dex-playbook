@@ -33,6 +33,7 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
   const currentStroke = useRef<{ x: number; y: number }[]>([]);
 
   const lastEmit = useRef(0);
+  const [copied, setCopied] = useState(false);
 
   const { socket, strokes, stickies, remoteUsers, remoteCursors, addStroke, addSticky, clearCanvasLocal } = useRoom({ roomId, userName, userColor });
 
@@ -259,8 +260,16 @@ export default function CanvasWorkspace({ roomId, userName, userColor }: CanvasW
               );
             })()}
           </div>
-          <button className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold rounded-lg transition-colors">
-            Share
+          <button
+            className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold rounded-lg transition-colors"
+            onClick={() => {
+              navigator.clipboard?.writeText(window.location.href).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }).catch(() => {});
+            }}
+          >
+            {copied ? "Copied!" : "Share"}
           </button>
         </div>
       </header>
